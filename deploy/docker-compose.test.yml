@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  dinq_message_test:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: dinq_message_test
+    env_file:
+      - ../.env.test
+    restart: unless-stopped
+    network_mode: host    # 使用宿主机网络，直接访问生产 Redis (端口 9080)
