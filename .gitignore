@@ -1,0 +1,74 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Go build output
+/tmp/
+*.tmp
+
+# Go coverage files
+*.cover
+*.coverprofile
+
+# Go modules
+vendor/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Upload directories
+uploads/
+temp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with secrets
+config.yaml
+secrets.yaml
+
+# Binary builds
+main
+.claude/
+__pycache__/
+
+# Scholar data
+/ding_scholar/data
+/ding_scholar/.venv
+/ding_scholar/.venv_scraper
+
+# Python virtual environments
+.venv
+venv
+env
