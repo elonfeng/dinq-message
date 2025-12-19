@@ -156,7 +156,7 @@ func (s *ConversationService) GetConversations(userID uuid.UUID, limit, offset i
 			if userData, ok := userDataMap[members[i].UserID.String()]; ok {
 				members[i].Name = &userData.Name
 				members[i].AvatarURL = &userData.AvatarURL
-				members[i].Username = &userData.Username
+				members[i].Username = &userData.Domain
 				members[i].Position = &userData.Position
 				members[i].Company = &userData.Company
 			}
@@ -264,8 +264,8 @@ func (s *ConversationService) filterConversationIDsBySearch(userID uuid.UUID, ke
 		for _, uid := range otherUsers {
 			if userData, ok := userDataMap[uid.String()]; ok {
 				nameLower := strings.ToLower(userData.Name)
-				usernameLower := strings.ToLower(userData.Username)
-				if strings.Contains(nameLower, keywordLower) || strings.Contains(usernameLower, keywordLower) {
+				domainLower := strings.ToLower(userData.Domain)
+				if strings.Contains(nameLower, keywordLower) || strings.Contains(domainLower, keywordLower) {
 					matched = append(matched, conv.ID)
 					break
 				}
@@ -319,7 +319,7 @@ func (s *ConversationService) GetConversationDetailWithMembers(conversationID, u
 		if userData, ok := userDataMap[members[i].UserID.String()]; ok {
 			members[i].Name = &userData.Name
 			members[i].AvatarURL = &userData.AvatarURL
-			members[i].Username = &userData.Username
+			members[i].Username = &userData.Domain
 			members[i].Position = &userData.Position
 			members[i].Company = &userData.Company
 		}
@@ -757,7 +757,7 @@ func (s *ConversationService) UnhideConversation(userID, conversationID uuid.UUI
 type UserDataInfo struct {
 	Name      string
 	AvatarURL string
-	Username  string
+	Domain    string // 用户域名（原 username）
 	Position  string
 	Company   string
 }
@@ -800,7 +800,7 @@ func (s *ConversationService) batchGetUserDataFromAgent(userIDs []string) map[st
 		Data map[string]struct {
 			Name      string `json:"name"`
 			AvatarURL string `json:"avatar_url"`
-			Username  string `json:"username"`
+			Domain    string `json:"domain"`
 			Position  string `json:"position"`
 			Company   string `json:"company"`
 		} `json:"data"`
@@ -815,7 +815,7 @@ func (s *ConversationService) batchGetUserDataFromAgent(userIDs []string) map[st
 			result[uid] = UserDataInfo{
 				Name:      data.Name,
 				AvatarURL: data.AvatarURL,
-				Username:  data.Username,
+				Domain:    data.Domain,
 				Position:  data.Position,
 				Company:   data.Company,
 			}
