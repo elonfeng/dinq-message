@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"dinq_message/config"
 	"dinq_message/handler"
@@ -11,6 +12,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+func init() {
+	// 设置时区为 UTC（推荐服务端统一使用 UTC）
+	time.Local = time.UTC
+}
 
 func main() {
 	// 加载配置
