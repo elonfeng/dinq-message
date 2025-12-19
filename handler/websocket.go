@@ -101,6 +101,18 @@ func (h *Hub) Register(client *Client) {
 		log.Printf("[WARN] User %s exceeds max connections (%d), rejecting new connection (client ID: %s)",
 			client.UserID, h.MaxConnectionsPerUser, client.ID)
 
+		// 先发送结构化错误消息，方便前端友好提示
+		errPayload := map[string]interface{}{
+			"type": "error",
+			"data": map[string]interface{}{
+				"code":    "too_many_devices",
+				"message": fmt.Sprintf("Maximum %d devices allowed", h.MaxConnectionsPerUser),
+			},
+		}
+		if msg, err := json.Marshal(errPayload); err == nil {
+			_ = client.Conn.WriteMessage(websocket.TextMessage, msg)
+		}
+
 		// 拒绝连接（不持有锁的情况下进行网络操作）
 		client.Conn.WriteMessage(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure,
