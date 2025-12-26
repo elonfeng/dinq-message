@@ -157,8 +157,7 @@ func (s *ConversationService) GetConversations(userID uuid.UUID, limit, offset i
 				members[i].Name = &userData.Name
 				members[i].AvatarURL = &userData.AvatarURL
 				members[i].Username = &userData.Domain
-				members[i].Position = &userData.Position
-				members[i].Company = &userData.Company
+				members[i].FullPosition = &userData.FullPosition
 			}
 		}
 		membersByConvID[convID] = members
@@ -320,8 +319,7 @@ func (s *ConversationService) GetConversationDetailWithMembers(conversationID, u
 			members[i].Name = &userData.Name
 			members[i].AvatarURL = &userData.AvatarURL
 			members[i].Username = &userData.Domain
-			members[i].Position = &userData.Position
-			members[i].Company = &userData.Company
+			members[i].FullPosition = &userData.FullPosition
 		}
 	}
 
@@ -755,11 +753,10 @@ func (s *ConversationService) UnhideConversation(userID, conversationID uuid.UUI
 
 // UserDataInfo 用户数据信息
 type UserDataInfo struct {
-	Name      string
-	AvatarURL string
-	Domain    string // 用户域名（原 username）
-	Position  string
-	Company   string
+	Name         string
+	AvatarURL    string
+	Domain       string // 用户域名（原 username）
+	FullPosition string
 }
 
 // batchGetUserDataFromAgent 从agent批量获取用户数据
@@ -798,11 +795,10 @@ func (s *ConversationService) batchGetUserDataFromAgent(userIDs []string) map[st
 	var apiResp struct {
 		Code int `json:"code"`
 		Data map[string]struct {
-			Name      string `json:"name"`
-			AvatarURL string `json:"avatar_url"`
-			Domain    string `json:"domain"`
-			Position  string `json:"position"`
-			Company   string `json:"company"`
+			Name         string `json:"name"`
+			AvatarURL    string `json:"avatar_url"`
+			Domain       string `json:"domain"`
+			FullPosition string `json:"full_position"`
 		} `json:"data"`
 	}
 
@@ -813,11 +809,10 @@ func (s *ConversationService) batchGetUserDataFromAgent(userIDs []string) map[st
 	if apiResp.Code == 0 && apiResp.Data != nil {
 		for uid, data := range apiResp.Data {
 			result[uid] = UserDataInfo{
-				Name:      data.Name,
-				AvatarURL: data.AvatarURL,
-				Domain:    data.Domain,
-				Position:  data.Position,
-				Company:   data.Company,
+				Name:         data.Name,
+				AvatarURL:    data.AvatarURL,
+				Domain:       data.Domain,
+				FullPosition: data.FullPosition,
 			}
 		}
 	}
@@ -913,11 +908,10 @@ func (s *ConversationService) SearchConversations(userID uuid.UUID, keyword stri
 			"conversation_id":   convID,
 			"conversation_type": conv.ConversationType,
 			"other_user": map[string]interface{}{
-				"user_id":    uid,
-				"name":       userData.Name,
-				"avatar_url": userData.AvatarURL,
-				"position":   userData.Position,
-				"company":    userData.Company,
+				"user_id":       uid,
+				"name":          userData.Name,
+				"avatar_url":    userData.AvatarURL,
+				"full_position": userData.FullPosition,
 			},
 			"last_message_time": conv.UpdatedAt,
 			"unread_count":      member.UnreadCount,

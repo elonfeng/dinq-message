@@ -36,11 +36,10 @@ type ConversationMember struct {
 	LastReadAt        *time.Time `json:"last_read_at,omitempty"`
 
 	// 用户信息（从agent查询补充，不存数据库）
-	Name      *string `json:"name,omitempty" gorm:"-"`
-	AvatarURL *string `json:"avatar_url,omitempty" gorm:"-"`
-	Username  *string `json:"username,omitempty" gorm:"-"`
-	Position  *string `json:"position,omitempty" gorm:"-"`
-	Company   *string `json:"company,omitempty" gorm:"-"`
+	Name         *string `json:"name,omitempty" gorm:"-"`
+	AvatarURL    *string `json:"avatar_url,omitempty" gorm:"-"`
+	Username     *string `json:"username,omitempty" gorm:"-"`
+	FullPosition *string `json:"full_position,omitempty" gorm:"-"`
 }
 
 func (ConversationMember) TableName() string {
