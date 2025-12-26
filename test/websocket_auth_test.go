@@ -159,7 +159,7 @@ func TestWebSocket_OnlineStatus(t *testing.T) {
 	require.NotEmpty(t, conversationID, "conversation_id不应为空")
 
 	// 2. B查询消息列表，A在线
-	resp, body, err := httpRequest("GET", "/api/conversations/"+conversationID+"/messages?limit=50", userB.Token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations/"+conversationID+"/messages?limit=50", userB.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "查询消息应该成功")
 
@@ -207,7 +207,7 @@ func TestWebSocket_OnlineStatus(t *testing.T) {
 	require.True(t, deleted, "A断开连接后，Redis中的在线状态应该被删除")
 
 	// 4. B再次查询，A应该离线
-	resp2, body2, err := httpRequest("GET", "/api/conversations/"+conversationID+"/messages?limit=50", userB.Token, nil)
+	resp2, body2, err := httpRequest("GET", APIPrefix+"/conversations/"+conversationID+"/messages?limit=50", userB.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp2.StatusCode)
 
@@ -223,7 +223,7 @@ func TestWebSocket_OnlineStatus(t *testing.T) {
 
 	// 5. 测试群聊：不返回在线状态
 	// 创建群聊
-	groupResp, groupBody, err := httpRequest("POST", "/api/conversations/group", userA.Token, map[string]interface{}{
+	groupResp, groupBody, err := httpRequest("POST", APIPrefix+"/conversations/group", userA.Token, map[string]interface{}{
 		"group_name": "测试群聊",
 		"member_ids": []string{userB.ID.String(), userC.ID.String()},
 	})
@@ -240,7 +240,7 @@ func TestWebSocket_OnlineStatus(t *testing.T) {
 	defer wsC.Close()
 
 	// B查询群聊消息
-	groupMsgResp, groupMsgBody, err := httpRequest("GET", "/api/conversations/"+groupID+"/messages?limit=50", userB.Token, nil)
+	groupMsgResp, groupMsgBody, err := httpRequest("GET", APIPrefix+"/conversations/"+groupID+"/messages?limit=50", userB.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, groupMsgResp.StatusCode)
 
@@ -346,7 +346,7 @@ func TestAuth_ExpiredToken(t *testing.T) {
 // 2. 返回401状态码
 func TestAuth_HTTPEndpoint(t *testing.T) {
 	// 1. 不带token访问接口
-	resp, _, err := httpRequest("GET", "/api/conversations", "", nil)
+	resp, _, err := httpRequest("GET", APIPrefix+"/conversations", "", nil)
 
 	// 2. 验证闭环：返回401
 	require.NoError(t, err)
@@ -372,7 +372,7 @@ func TestAuth_ValidToken(t *testing.T) {
 	defer ws.Close()
 
 	// 2. 验证闭环：HTTP接口访问
-	resp, _, err := httpRequest("GET", "/api/conversations", user.Token, nil)
+	resp, _, err := httpRequest("GET", APIPrefix+"/conversations", user.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "有效token应该能访问HTTP接口")
 }

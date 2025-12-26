@@ -32,12 +32,12 @@ func TestFirstMessageLimit_Enabled(t *testing.T) {
 	userB := createTestUser()
 
 	// 1. 确保启用首条消息限制
-	resp, _, err := httpRequest("POST", "/api/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "启用首条消息限制应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	wsA, _ := connectWebSocket(userA.Token)
@@ -76,12 +76,12 @@ func TestFirstMessageLimit_Enabled(t *testing.T) {
 	assert.Equal(t, 1, len(messages), "应该只有1条消息（第二条被拒绝）")
 
 	// 4. 关闭首条消息限制
-	resp, _, err = httpRequest("POST", "/api/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
 		"value": "false",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "关闭首条消息限制应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	// 5. A发第三条消息（应该成功，因为功能关闭）
@@ -101,10 +101,10 @@ func TestFirstMessageLimit_Enabled(t *testing.T) {
 	assert.Equal(t, 2, len(messages), "关闭限制后应该有2条消息")
 
 	// 6. 恢复系统配置
-	httpRequest("POST", "/api/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 }
 
 // TestFirstMessageLimit_AfterReply 测试对方回复后可以继续发送
@@ -195,14 +195,14 @@ func TestFirstMessageLimit_Disabled(t *testing.T) {
 	convID := msgA["data"].(map[string]interface{})["conversation_id"].(string)
 
 	// 2. 超管关闭首条消息限制功能
-	resp, _, err := httpRequest("POST", "/api/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
 		"value": "false",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "超管更新系统配置应该成功")
 
 	// 重新加载配置（让服务端生效）
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	// 3. A发第二条消息（应该成功，因为系统功能已关闭）
@@ -222,10 +222,10 @@ func TestFirstMessageLimit_Disabled(t *testing.T) {
 	assert.Equal(t, 2, len(messages), "应该有2条消息")
 
 	// 5. 恢复系统配置（启用限制）
-	httpRequest("POST", "/api/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/admin/settings/enable_first_message_limit", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 }
 
 // TestFirstMessageLimit_GroupNoLimit 测试群聊不受首条消息限制
@@ -243,7 +243,7 @@ func TestFirstMessageLimit_GroupNoLimit(t *testing.T) {
 	member1 := createTestUser()
 
 	// 1. 创建群聊
-	_, body, _ := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	_, body, _ := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String()},
 	})
@@ -305,12 +305,12 @@ func TestReadReceipt_Enabled(t *testing.T) {
 	userB := createTestUser()
 
 	// 1. 确保启用已读回执
-	resp, _, err := httpRequest("POST", "/api/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "启用已读回执应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	wsA, _ := connectWebSocket(userA.Token)
@@ -374,12 +374,12 @@ func TestReadReceipt_Enabled(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// 5. 关闭已读回执
-	resp, _, err = httpRequest("POST", "/api/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
 		"value": "false",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "关闭已读回执应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	// 6. A发第二条消息
@@ -425,10 +425,10 @@ func TestReadReceipt_Enabled(t *testing.T) {
 	assert.Equal(t, 0, unread, "关闭已读回执后，标记已读仍应更新未读状态")
 
 	// 8. 恢复系统配置
-	httpRequest("POST", "/api/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/admin/settings/enable_read_receipt", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 }
 
 // ============================================
@@ -453,12 +453,12 @@ func TestTypingIndicator_Enabled(t *testing.T) {
 	userB := createTestUser()
 
 	// 1. 确保启用正在输入提示
-	resp, _, err := httpRequest("POST", "/api/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "启用正在输入提示应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	wsA, _ := connectWebSocket(userA.Token)
@@ -502,12 +502,12 @@ func TestTypingIndicator_Enabled(t *testing.T) {
 	}
 
 	// 4. 关闭正在输入提示
-	resp, _, err = httpRequest("POST", "/api/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
 		"value": "false",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "关闭正在输入提示应该成功")
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 	time.Sleep(500 * time.Millisecond)
 
 	// 5. A发送typing事件，验证B不应收到通知
@@ -531,10 +531,10 @@ func TestTypingIndicator_Enabled(t *testing.T) {
 	}
 
 	// 6. 恢复系统配置
-	httpRequest("POST", "/api/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/admin/settings/enable_typing_indicator", userA.Token, map[string]interface{}{
 		"value": "true",
 	})
-	httpRequest("POST", "/api/admin/settings/reload", userA.Token, nil)
+	httpRequest("POST", APIPrefix+"/admin/settings/reload", userA.Token, nil)
 }
 
 // ============================================
@@ -564,7 +564,7 @@ func TestBlock_SendMessage(t *testing.T) {
 	defer wsB.Close()
 
 	// 1. B拉黑A
-	resp, _, err := httpRequest("POST", "/api/relationships/block", userB.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/relationships/block", userB.Token, map[string]interface{}{
 		"target_user_id": userA.ID.String(),
 	})
 	require.NoError(t, err)
@@ -589,7 +589,7 @@ func TestBlock_SendMessage(t *testing.T) {
 	t.Log("✓ A发消息被拒绝，收到错误提示")
 
 	// 3. B取消拉黑A
-	resp, _, err = httpRequest("POST", "/api/relationships/unblock", userB.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/relationships/unblock", userB.Token, map[string]interface{}{
 		"target_user_id": userA.ID.String(),
 	})
 	require.NoError(t, err)
@@ -646,7 +646,7 @@ func TestBlock_ExistingConversation(t *testing.T) {
 	convID := msgA["data"].(map[string]interface{})["conversation_id"].(string)
 
 	// 2. B拉黑A
-	httpRequest("POST", "/api/relationships/block", userB.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/relationships/block", userB.Token, map[string]interface{}{
 		"target_user_id": userA.ID.String(),
 	})
 
@@ -683,15 +683,15 @@ func TestBlock_GetBlockList(t *testing.T) {
 	userC := createTestUser()
 
 	// 1. A拉黑B和C
-	httpRequest("POST", "/api/relationships/block", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/relationships/block", userA.Token, map[string]interface{}{
 		"target_user_id": userB.ID.String(),
 	})
-	httpRequest("POST", "/api/relationships/block", userA.Token, map[string]interface{}{
+	httpRequest("POST", APIPrefix+"/relationships/block", userA.Token, map[string]interface{}{
 		"target_user_id": userC.ID.String(),
 	})
 
 	// 2. A查询拉黑列表
-	resp, body, err := httpRequest("GET", "/api/relationships/blocked", userA.Token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/relationships/blocked", userA.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 

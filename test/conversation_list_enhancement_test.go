@@ -368,7 +368,7 @@ func TestConversationList_Pagination(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// 2. 查询会话列表（默认limit）
-	resp, body, err := httpRequest("GET", "/api/conversations", userA.Token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations", userA.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 
@@ -378,7 +378,7 @@ func TestConversationList_Pagination(t *testing.T) {
 	t.Logf("✓ 默认查询返回 %d 条会话（预期≤20）", len(conversations))
 
 	// 3. 查询会话列表（limit=10）
-	resp, body, err = httpRequest("GET", "/api/conversations?limit=10", userA.Token, nil)
+	resp, body, err = httpRequest("GET", APIPrefix+"/conversations?limit=10", userA.Token, nil)
 	require.NoError(t, err)
 	result = parseResponse(body)
 	conversations, _ = result["conversations"].([]interface{})

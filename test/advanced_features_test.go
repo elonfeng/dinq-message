@@ -53,7 +53,7 @@ func TestRecall_WithinTimeLimit(t *testing.T) {
 	wsReceive(wsB, 3*time.Second) // B收到消息
 
 	// 2. A立即撤回第一条消息
-	resp, _, err := httpRequest("POST", "/api/messages/"+msgID1+"/recall", userA.Token, nil)
+	resp, _, err := httpRequest("POST", APIPrefix+"/messages/"+msgID1+"/recall", userA.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "2分钟内撤回应该成功")
 
@@ -148,7 +148,7 @@ func TestRecall_WithinTimeLimit(t *testing.T) {
 
 	// 7. 尝试撤回第二条消息（应该失败）
 	t.Logf("🔄 发起撤回请求，messageID=%s", msgID2)
-	resp2, body2, err := httpRequest("POST", "/api/messages/"+msgID2+"/recall", userA.Token, nil)
+	resp2, body2, err := httpRequest("POST", APIPrefix+"/messages/"+msgID2+"/recall", userA.Token, nil)
 	require.NoError(t, err)
 	t.Logf("撤回响应: status=%d, body=%s", resp2.StatusCode, string(body2))
 	assert.Equal(t, 400, resp2.StatusCode, "超过2分钟后撤回应该失败")
@@ -190,7 +190,7 @@ func TestRecall_NotOwnMessage(t *testing.T) {
 	convID := msgA["data"].(map[string]interface{})["conversation_id"].(string)
 
 	// 2. B尝试撤回A的消息（应该返回403 Forbidden）
-	resp, _, err := httpRequest("POST", "/api/messages/"+msgID+"/recall", userB.Token, nil)
+	resp, _, err := httpRequest("POST", APIPrefix+"/messages/"+msgID+"/recall", userB.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 403, resp.StatusCode, "撤回他人消息应该返回403 Forbidden（权限问题）")
 
@@ -227,11 +227,11 @@ func TestRecall_AlreadyRecalled(t *testing.T) {
 	msgID := msgA["data"].(map[string]interface{})["id"].(string)
 
 	// 2. 第一次撤回（成功）
-	resp, _, _ := httpRequest("POST", "/api/messages/"+msgID+"/recall", userA.Token, nil)
+	resp, _, _ := httpRequest("POST", APIPrefix+"/messages/"+msgID+"/recall", userA.Token, nil)
 	assert.Equal(t, 200, resp.StatusCode, "第一次撤回应该成功")
 
 	// 3. 验证闭环：第二次撤回（失败）
-	resp, _, err := httpRequest("POST", "/api/messages/"+msgID+"/recall", userA.Token, nil)
+	resp, _, err := httpRequest("POST", APIPrefix+"/messages/"+msgID+"/recall", userA.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 400, resp.StatusCode, "重复撤回应该被拒绝")
 }
@@ -257,7 +257,7 @@ func TestGroupPermission_OnlyOwnerAddMember(t *testing.T) {
 	member2 := createTestUser()
 
 	// 1. 创建群聊
-	resp, body, _ := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	resp, body, _ := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String()},
 	})
@@ -265,14 +265,14 @@ func TestGroupPermission_OnlyOwnerAddMember(t *testing.T) {
 	groupID := group["id"].(string)
 
 	// 2. member1尝试添加member2（应该失败）
-	resp, _, err := httpRequest("POST", "/api/conversations/"+groupID+"/members", member1.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/conversations/"+groupID+"/members", member1.Token, map[string]interface{}{
 		"member_ids": []string{member2.ID.String()},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 403, resp.StatusCode, "普通成员不应能添加成员")
 
 	// 3. owner添加member2（应该成功）
-	resp, _, err = httpRequest("POST", "/api/conversations/"+groupID+"/members", owner.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/conversations/"+groupID+"/members", owner.Token, map[string]interface{}{
 		"member_ids": []string{member2.ID.String()},
 	})
 	require.NoError(t, err)
@@ -325,7 +325,7 @@ func TestGroupPermission_OnlyOwnerRemoveMember(t *testing.T) {
 	member2 := createTestUser()
 
 	// 1. 创建群聊
-	resp, body, _ := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	resp, body, _ := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String(), member2.ID.String()},
 	})
@@ -333,14 +333,14 @@ func TestGroupPermission_OnlyOwnerRemoveMember(t *testing.T) {
 	groupID := group["id"].(string)
 
 	// 2. member1尝试踢member2（应该失败）
-	resp, _, err := httpRequest("POST", "/api/conversations/"+groupID+"/members/remove", member1.Token, map[string]interface{}{
+	resp, _, err := httpRequest("POST", APIPrefix+"/conversations/"+groupID+"/members/remove", member1.Token, map[string]interface{}{
 		"user_id": member2.ID.String(),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 403, resp.StatusCode, "普通成员不应能踢人")
 
 	// 3. owner踢member2（应该成功）
-	resp, _, err = httpRequest("POST", "/api/conversations/"+groupID+"/members/remove", owner.Token, map[string]interface{}{
+	resp, _, err = httpRequest("POST", APIPrefix+"/conversations/"+groupID+"/members/remove", owner.Token, map[string]interface{}{
 		"user_id": member2.ID.String(),
 	})
 	require.NoError(t, err)
@@ -405,7 +405,7 @@ func TestNotification_MarkAsRead(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// 2. 查询通知列表
-	resp, body, _ := httpRequest("GET", "/api/notifications", user.Token, nil)
+	resp, body, _ := httpRequest("GET", APIPrefix+"/notifications", user.Token, nil)
 	result := parseResponse(body)
 	notifications, ok := result["notifications"].([]interface{})
 
@@ -418,12 +418,12 @@ func TestNotification_MarkAsRead(t *testing.T) {
 	notifID := notif["id"].(string)
 
 	// 3. 标记为已读
-	resp, _, err := httpRequest("POST", "/api/notifications/"+notifID+"/read", user.Token, nil)
+	resp, _, err := httpRequest("POST", APIPrefix+"/notifications/"+notifID+"/read", user.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "标记已读应该成功")
 
 	// 4. 验证闭环：再次查询，验证已读
-	resp, body, _ = httpRequest("GET", "/api/notifications", user.Token, nil)
+	resp, body, _ = httpRequest("GET", APIPrefix+"/notifications", user.Token, nil)
 	result = parseResponse(body)
 	notifications = result["notifications"].([]interface{})
 

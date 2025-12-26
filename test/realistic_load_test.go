@@ -110,17 +110,14 @@ func collectSystemMetrics() SystemMetrics {
 func TestRealisticLoad_10KUsers(t *testing.T) {
 
 	// ========================================
-	// 📝 测试配置（直接在这里修改参数）
+	// 📝 测试配置
+	// 服务地址配置在 helpers_test.go 统一管理
 	// ========================================
 
-	// 服务地址配置
-	BaseURL = "http://localhost:8083" // HTTP API 地址
-	WSURL = "ws://localhost:8083"     // WebSocket 地址
-
 	// 测试规模配置
-	totalUsers := 2000                 // 总用户数
+	totalUsers := 500                  // 总用户数（远程DB建议200-500）
 	onlineDuration := 30 * time.Second // 单用户在线时长
-	rampUpDuration := 60 * time.Second // 用户上线时间（逐渐上线）
+	rampUpDuration := 30 * time.Second // 用户上线时间（逐渐上线）
 	thinkTimeMin := 800                // 思考时间最小值（毫秒）
 	thinkTimeMax := 2000               // 思考时间最大值（毫秒）
 	msgCountMin := 2                   // 每人最少发送消息数
@@ -1301,7 +1298,7 @@ func TestRealisticLoad_10KUsers(t *testing.T) {
 
 // verifyInConversationList 验证消息是否出现在会话列表中
 func verifyInConversationList(token, conversationID string) bool {
-	resp, body, err := httpRequest("GET", "/api/conversations?limit=50", token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations?limit=50", token, nil)
 	if err != nil || resp.StatusCode != 200 {
 		return false
 	}
@@ -1330,7 +1327,7 @@ func verifyInMessageHistory(token, conversationID, messageID string) bool {
 		return false
 	}
 
-	resp, body, err := httpRequest("GET", fmt.Sprintf("/api/conversations/%s/messages?limit=50", conversationID), token, nil)
+	resp, body, err := httpRequest("GET", fmt.Sprintf(APIPrefix+"/conversations/%s/messages?limit=50", conversationID), token, nil)
 	if err != nil || resp.StatusCode != 200 {
 		return false
 	}
@@ -1355,7 +1352,7 @@ func verifyInMessageHistory(token, conversationID, messageID string) bool {
 
 // verifyUnreadCount 验证未读计数是否 > 0
 func verifyUnreadCount(token, conversationID string) bool {
-	resp, body, err := httpRequest("GET", "/api/conversations?limit=50", token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations?limit=50", token, nil)
 	if err != nil || resp.StatusCode != 200 {
 		return false
 	}
