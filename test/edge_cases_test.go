@@ -215,7 +215,7 @@ func TestEdgeCase_NonExistentConversation(t *testing.T) {
 	fakeConvID := uuid.New().String()
 
 	// 1. 访问不存在的会话
-	resp, _, err := httpRequest("GET", "/api/conversations/"+fakeConvID+"/messages", user.Token, nil)
+	resp, _, err := httpRequest("GET", APIPrefix+"/conversations/"+fakeConvID+"/messages", user.Token, nil)
 
 	// 2. 验证闭环：返回错误状态码
 	require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestEdgeCase_AccessOtherConversation(t *testing.T) {
 	convID := msg["data"].(map[string]interface{})["conversation_id"].(string)
 
 	// 2. C尝试访问A-B的会话
-	resp, _, err := httpRequest("GET", "/api/conversations/"+convID+"/messages", userC.Token, nil)
+	resp, _, err := httpRequest("GET", APIPrefix+"/conversations/"+convID+"/messages", userC.Token, nil)
 
 	// 3. 验证闭环：应该被拒绝
 	require.NoError(t, err)
@@ -422,7 +422,7 @@ func TestEdgeCase_EmptyConversationList(t *testing.T) {
 	newUser := createTestUser()
 
 	// 1. 查询会话列表
-	resp, body, err := httpRequest("GET", "/api/conversations", newUser.Token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations", newUser.Token, nil)
 
 	// 2. 验证闭环：返回200和空数组
 	require.NoError(t, err)
@@ -465,21 +465,21 @@ func TestEdgeCase_Pagination(t *testing.T) {
 	}
 
 	// 2. 查询第1页
-	resp, body, _ := httpRequest("GET", "/api/conversations?limit=2&offset=0", user.Token, nil)
+	resp, body, _ := httpRequest("GET", APIPrefix+"/conversations?limit=2&offset=0", user.Token, nil)
 	assert.Equal(t, 200, resp.StatusCode)
 	result := parseResponse(body)
 	page1 := result["conversations"].([]interface{})
 	assert.LessOrEqual(t, len(page1), 2, "第1页应返回<=2条")
 
 	// 3. 查询第2页
-	resp, body, _ = httpRequest("GET", "/api/conversations?limit=2&offset=2", user.Token, nil)
+	resp, body, _ = httpRequest("GET", APIPrefix+"/conversations?limit=2&offset=2", user.Token, nil)
 	assert.Equal(t, 200, resp.StatusCode)
 	result = parseResponse(body)
 	page2 := result["conversations"].([]interface{})
 	assert.GreaterOrEqual(t, len(page2), 0, "第2页应返回>=0条")
 
 	// 4. 查询超出范围的页
-	resp, body, _ = httpRequest("GET", "/api/conversations?limit=2&offset=100", user.Token, nil)
+	resp, body, _ = httpRequest("GET", APIPrefix+"/conversations?limit=2&offset=100", user.Token, nil)
 	assert.Equal(t, 200, resp.StatusCode)
 	result = parseResponse(body)
 	page3 := result["conversations"].([]interface{})

@@ -404,7 +404,7 @@ func TestGroupChat_CreateAndSend(t *testing.T) {
 	member2 := createTestUser()
 
 	// 1. 创建群聊
-	resp, body, err := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	resp, body, err := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String(), member2.ID.String()},
 	})
@@ -476,7 +476,7 @@ func TestGroupChat_MemberLeave(t *testing.T) {
 	member1 := createTestUser()
 
 	// 1. 创建群聊
-	resp, body, _ := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	resp, body, _ := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String()},
 	})
@@ -484,7 +484,7 @@ func TestGroupChat_MemberLeave(t *testing.T) {
 	groupID := group["id"].(string)
 
 	// 2. member1离开群聊
-	resp, _, err := httpRequest("POST", "/api/conversations/"+groupID+"/leave", member1.Token, nil)
+	resp, _, err := httpRequest("POST", APIPrefix+"/conversations/"+groupID+"/leave", member1.Token, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode, "离开群聊应该成功")
 
@@ -494,7 +494,7 @@ func TestGroupChat_MemberLeave(t *testing.T) {
 	assert.Nil(t, conv, "离开的群聊不应出现在会话列表")
 
 	// 4. member1尝试查询群消息，应该失败
-	resp, _, _ = httpRequest("GET", "/api/conversations/"+groupID+"/messages", member1.Token, nil)
+	resp, _, _ = httpRequest("GET", APIPrefix+"/conversations/"+groupID+"/messages", member1.Token, nil)
 	assert.True(t, resp.StatusCode == 403 || resp.StatusCode == 404, "离开后不应能查看群消息")
 }
 
@@ -607,7 +607,7 @@ func TestUnreadCount_GroupMultipleSenders(t *testing.T) {
 	member3 := createTestUser()
 
 	// 1. 创建群聊
-	_, body, _ := httpRequest("POST", "/api/conversations/group", owner.Token, map[string]interface{}{
+	_, body, _ := httpRequest("POST", APIPrefix+"/conversations/group", owner.Token, map[string]interface{}{
 		"group_name": "Test Group",
 		"member_ids": []string{member1.ID.String(), member2.ID.String(), member3.ID.String()},
 	})

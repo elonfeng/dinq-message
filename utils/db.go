@@ -68,9 +68,9 @@ func InitDB(databaseURL string) error {
 		return err
 	}
 
-	// 连接池配置
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetMaxIdleConns(20)
+	// 连接池配置（压测时可调大）
+	sqlDB.SetMaxOpenConns(200)
+	sqlDB.SetMaxIdleConns(50)
 
 	log.Println("✅ Database connected")
 	return nil

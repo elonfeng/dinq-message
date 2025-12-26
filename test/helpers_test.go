@@ -18,7 +18,8 @@ import (
 var (
 	BaseURL   = "http://localhost:8083"
 	WSURL     = "ws://localhost:8083"
-	JWTSecret = "your-super-secret-jwt-key-here" // 和服务端保持一致
+	APIPrefix = "/api/v1"                        // API 路由前缀
+	JWTSecret = "your-super-secret-jwt-key-here" // ⚠️ 改成测试环境的 JWT_SECRET
 
 	// Redis 配置（和 .env 保持一致）
 	RedisURL      = "localhost:6379"
@@ -177,7 +178,7 @@ func parseResponse(body []byte) map[string]interface{} {
 
 // getConversationList 获取会话列表
 func getConversationList(token string) ([]interface{}, error) {
-	resp, body, err := httpRequest("GET", "/api/conversations?limit=50", token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations?limit=50", token, nil)
 	if err != nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to get conversation list")
 	}
@@ -192,7 +193,7 @@ func getConversationList(token string) ([]interface{}, error) {
 
 // getMessages 获取会话消息列表
 func getMessages(token, conversationID string) ([]interface{}, error) {
-	resp, body, err := httpRequest("GET", "/api/conversations/"+conversationID+"/messages?limit=50", token, nil)
+	resp, body, err := httpRequest("GET", APIPrefix+"/conversations/"+conversationID+"/messages?limit=50", token, nil)
 	if err != nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to get messages")
 	}
