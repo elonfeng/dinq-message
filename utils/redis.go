@@ -23,7 +23,7 @@ func InitRedis(url, password string, db int) error {
 		return err
 	}
 
-	log.Println("✅ Redis connected")
+	log.Println("Redis connected")
 	return nil
 }
 

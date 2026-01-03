@@ -98,7 +98,7 @@ func (h *Hub) Register(client *Client) {
 	if len(h.Clients[client.UserID]) >= h.MaxConnectionsPerUser {
 		h.mu.Unlock() // 先释放锁，再进行网络操作
 
-		log.Printf("[WARN] User %s exceeds max connections (%d), rejecting new connection (client ID: %s)",
+		log.Printf("[ERROR] User %s exceeds max connections (%d), rejecting new connection (client ID: %s)",
 			client.UserID, h.MaxConnectionsPerUser, client.ID)
 
 		// 先发送结构化错误消息，方便前端友好提示
@@ -213,7 +213,7 @@ func (h *Hub) SendToUser(userID uuid.UUID, message []byte) bool {
 			sentToAny = true
 		default:
 			// 发送通道满了，关闭该设备连接
-			log.Printf("❌ [CRITICAL] Send channel FULL: user=%s, client=%s, closing connection", userID, client.ID)
+			log.Printf("[ERROR] Send channel FULL: user=%s, client=%s, closing connection", userID, client.ID)
 			go h.Unregister(client)
 		}
 	}
@@ -250,7 +250,7 @@ func (h *Hub) SendNotification(userID uuid.UUID, notification interface{}) bool 
 	}
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Failed to marshal notification: %v", err)
+		log.Printf("[ERROR] Failed to marshal notification: %v", err)
 		return false
 	}
 	return h.SendToUser(userID, responseData)
@@ -267,7 +267,7 @@ func (h *Hub) SendUnreadCountUpdate(userID uuid.UUID, conversationID uuid.UUID, 
 	}
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Failed to marshal unread count update: %v", err)
+		log.Printf("[ERROR] Failed to marshal unread count update: %v", err)
 		return false
 	}
 	return h.SendToUser(userID, responseData)
@@ -284,7 +284,7 @@ func (h *Hub) SendOnlineStatusUpdate(userID uuid.UUID, targetUserID uuid.UUID, i
 	}
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Failed to marshal online status update: %v", err)
+		log.Printf("[ERROR] Failed to marshal online status update: %v", err)
 		return false
 	}
 	return h.SendToUser(userID, responseData)
@@ -303,7 +303,7 @@ func (h *Hub) SendConversationUpdate(userID uuid.UUID, conversationID uuid.UUID,
 	}
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("❌ [ConvUpdate] Marshal failed: user=%s, conversation=%s, error=%v", userID, conversationID, err)
+		log.Printf("[ERROR] ConvUpdate marshal failed: user=%s, conversation=%s, error=%v", userID, conversationID, err)
 		return false
 	}
 
@@ -322,7 +322,7 @@ func (h *Hub) SendNotificationUpdate(userID uuid.UUID, unreadCount int, latestNo
 	}
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Failed to marshal notification update: %v", err)
+		log.Printf("[ERROR] Failed to marshal notification update: %v", err)
 		return false
 	}
 	return h.SendToUser(userID, responseData)
@@ -355,7 +355,7 @@ func (h *Hub) notifyOnlineStatusChange(userID uuid.UUID, isOnline bool) {
 	`, userID, userID).Scan(&conversations).Error
 
 	if err != nil {
-		log.Printf("Failed to query conversations for online status update: %v", err)
+		log.Printf("[ERROR] Failed to query conversations for online status update: %v", err)
 		return
 	}
 
@@ -449,7 +449,7 @@ func HandleWebSocket(hub *Hub) gin.HandlerFunc {
 		// 升级为 WebSocket 连接
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
-			log.Printf("❌ [WebSocket] Upgrade failed for user %s: %v", userID, err)
+			log.Printf("[ERROR] WebSocket upgrade failed for user %s: %v", userID, err)
 			return
 		}
 
@@ -491,8 +491,7 @@ func (c *Client) readPump() {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[readPump] User %s WebSocket unexpected close error: %v", c.UserID, err)
-			} else {
+				log.Printf("[ERROR] User %s WebSocket unexpected close error: %v", c.UserID, err)
 			}
 			break
 		}
@@ -500,7 +499,7 @@ func (c *Client) readPump() {
 		// 解析消息
 		var wsMsg WSMessage
 		if err := json.Unmarshal(message, &wsMsg); err != nil {
-			log.Printf("Invalid message format: %v", err)
+			log.Printf("[ERROR] Invalid message format: %v", err)
 			// 发送错误消息给客户端
 			errorResponse := map[string]interface{}{
 				"type": "error",
@@ -588,7 +587,7 @@ func (c *Client) writePump() {
 func (c *Client) handleSendMessage(data json.RawMessage) {
 	var req service.SendMessageRequest
 	if err := json.Unmarshal(data, &req); err != nil {
-		log.Printf("Invalid message format: %v", err)
+		log.Printf("[ERROR] Invalid message format: %v", err)
 		c.sendError("Invalid message format")
 		return
 	}
@@ -596,7 +595,7 @@ func (c *Client) handleSendMessage(data json.RawMessage) {
 	// 发送消息
 	message, err := c.Hub.msgSvc.SendMessage(c.UserID, &req)
 	if err != nil {
-		log.Printf("Failed to send message: %v", err)
+		log.Printf("[ERROR] Failed to send message: %v", err)
 		c.sendError(err.Error())
 		return
 	}
@@ -604,7 +603,7 @@ func (c *Client) handleSendMessage(data json.RawMessage) {
 	// 获取会话中的所有在线成员
 	members, err := c.Hub.msgSvc.GetConversationMembers(message.ConversationID)
 	if err != nil {
-		log.Printf("[handleSendMessage] Failed to get conversation members: %v", err)
+		log.Printf("[ERROR] Failed to get conversation members: %v", err)
 		members = []uuid.UUID{} // 空数组，避免后续panic
 	}
 
@@ -682,13 +681,13 @@ func (c *Client) handleMarkAsRead(data json.RawMessage) {
 		MessageID      uuid.UUID `json:"message_id"`
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
-		log.Printf("Invalid read receipt format: %v", err)
+		log.Printf("[ERROR] Invalid read receipt format: %v", err)
 		return
 	}
 
 	// 标记为已读（这个操作总是执行，更新未读计数）
 	if err := c.Hub.msgSvc.MarkAsRead(c.UserID, req.ConversationID, req.MessageID); err != nil {
-		log.Printf("Failed to mark as read: %v", err)
+		log.Printf("[ERROR] Failed to mark as read: %v", err)
 		return
 	}
 
@@ -719,7 +718,7 @@ func (c *Client) handleRecallMessage(data json.RawMessage) {
 		MessageID uuid.UUID `json:"message_id"`
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
-		log.Printf("Invalid recall format: %v", err)
+		log.Printf("[ERROR] Invalid recall format: %v", err)
 		c.sendError("Invalid recall format")
 		return
 	}
@@ -727,14 +726,14 @@ func (c *Client) handleRecallMessage(data json.RawMessage) {
 	// 先查询消息获取conversation_id
 	message, err := c.Hub.msgSvc.GetMessageByID(req.MessageID)
 	if err != nil {
-		log.Printf("Message not found: %v", err)
+		log.Printf("[ERROR] Message not found: %v", err)
 		c.sendError("Message not found")
 		return
 	}
 
 	// 撤回消息
 	if err := c.Hub.msgSvc.RecallMessage(c.UserID, req.MessageID); err != nil {
-		log.Printf("Failed to recall message: %v", err)
+		log.Printf("[ERROR] Failed to recall message: %v", err)
 		c.sendError(err.Error())
 		return
 	}
@@ -763,7 +762,7 @@ func (c *Client) handleSetCurrentConversation(data json.RawMessage) {
 		ConversationID *string `json:"conversation_id"` // null表示离开聊天页面
 	}
 	if err := json.Unmarshal(data, &req); err != nil {
-		log.Printf("Invalid set_current_conversation format: %v", err)
+		log.Printf("[ERROR] Invalid set_current_conversation format: %v", err)
 		return
 	}
 
@@ -777,7 +776,7 @@ func (c *Client) handleSetCurrentConversation(data json.RawMessage) {
 		// 用户进入特定会话页面
 		convID, err := uuid.Parse(*req.ConversationID)
 		if err != nil {
-			log.Printf("Invalid conversation_id: %v", err)
+			log.Printf("[ERROR] Invalid conversation_id: %v", err)
 			return
 		}
 		c.CurrentConversationID = &convID
@@ -792,7 +791,7 @@ func (c *Client) sendOfflineMessages() {
 	// 从Redis获取所有离线消息
 	messages, err := c.Hub.rdb.LRange(ctx, key, 0, -1).Result()
 	if err != nil {
-		log.Printf("Failed to get offline messages for user %s: %v", c.UserID, err)
+		log.Printf("[ERROR] Failed to get offline messages for user %s: %v", c.UserID, err)
 		return
 	}
 
@@ -804,7 +803,7 @@ func (c *Client) sendOfflineMessages() {
 	for _, msgData := range messages {
 		var message map[string]interface{}
 		if err := json.Unmarshal([]byte(msgData), &message); err != nil {
-			log.Printf("Failed to unmarshal offline message: %v", err)
+			log.Printf("[ERROR] Failed to unmarshal offline message: %v", err)
 			continue
 		}
 
@@ -821,7 +820,7 @@ func (c *Client) sendOfflineMessages() {
 			// 发送成功
 		default:
 			// channel 满了，跳过这条消息
-			log.Printf("[WARN] Failed to send offline message to user %s: channel full", c.UserID)
+			log.Printf("[ERROR] Failed to send offline message to user %s: channel full", c.UserID)
 		}
 	}
 
@@ -832,7 +831,7 @@ func (c *Client) sendOfflineMessages() {
 	if c.Hub.notifSvc != nil {
 		latestNotif, err := c.Hub.notifSvc.GetLatestUnreadNotification(c.UserID)
 		if err != nil {
-			log.Printf("Failed to get latest unread notification for user %s: %v", c.UserID, err)
+			log.Printf("[ERROR] Failed to get latest unread notification for user %s: %v", c.UserID, err)
 		} else if latestNotif != nil {
 			// 发送通知
 			response := map[string]interface{}{
@@ -844,9 +843,9 @@ func (c *Client) sendOfflineMessages() {
 			// 非阻塞发送
 			select {
 			case c.Send <- responseData:
-				log.Printf("✅ [Notification] Sent latest unread notification to user %s on login", c.UserID)
+				// 发送成功
 			default:
-				log.Printf("[WARN] Failed to send notification to user %s: channel full", c.UserID)
+				log.Printf("[ERROR] Failed to send notification to user %s: channel full", c.UserID)
 			}
 		}
 	}
@@ -867,6 +866,6 @@ func (c *Client) sendError(errMsg string) {
 	case c.Send <- responseData:
 		// 发送成功
 	default:
-		log.Printf("[WARN] Failed to send error message to user %s: channel full", c.UserID)
+		log.Printf("[ERROR] Failed to send error message to user %s: channel full", c.UserID)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"dinq_message/model"
@@ -341,9 +340,6 @@ func (s *MessageService) RecallMessage(userID uuid.UUID, messageID uuid.UUID) er
 	if err != nil {
 		return fmt.Errorf("failed to calculate elapsed time: %w", err)
 	}
-
-	log.Printf("[RecallMessage] messageID=%s, elapsed=%.2f seconds (calculated by database)",
-		messageID, elapsedSeconds)
 
 	if elapsedSeconds > 10 { // 2分钟 = 120秒
 		return fmt.Errorf("can only recall messages within 2 minutes (elapsed: %.0f seconds)", elapsedSeconds)

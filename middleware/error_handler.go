@@ -14,7 +14,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				// 记录 panic 信息
-				log.Printf("Panic recovered: %v", err)
+				log.Printf("[ERROR] Panic recovered: %v", err)
 
 				// 返回统一错误响应
 				if !c.Writer.Written() {
@@ -33,7 +33,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 		if len(c.Errors) > 0 {
 			// 获取最后一个错误
 			err := c.Errors.Last()
-			log.Printf("Request error: %v", err.Err)
+			log.Printf("[ERROR] Request error: %v", err.Err)
 
 			// 如果响应还没有写入，返回错误
 			if !c.Writer.Written() {

@@ -822,8 +822,6 @@ func (s *ConversationService) batchGetUserDataFromAgent(userIDs []string) map[st
 
 // SearchConversations 搜索会话（根据对方用户名模糊匹配）
 func (s *ConversationService) SearchConversations(userID uuid.UUID, keyword string, limit, offset int) ([]map[string]interface{}, error) {
-	fmt.Printf("[SearchConversations] Start: userID=%s, keyword=%s\n", userID, keyword)
-
 	// 1. 获取用户参与的所有私聊会话
 	var conversations []model.Conversation
 	err := s.db.Table("conversations").
@@ -836,8 +834,6 @@ func (s *ConversationService) SearchConversations(userID uuid.UUID, keyword stri
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("[SearchConversations] Found %d conversations\n", len(conversations))
 
 	// 2. 获取所有对方用户的 ID
 	var otherUserIDs []string
@@ -852,7 +848,6 @@ func (s *ConversationService) SearchConversations(userID uuid.UUID, keyword stri
 		for _, member := range members {
 			otherUserIDs = append(otherUserIDs, member.UserID.String())
 			conversationUserMap[member.UserID.String()] = conv.ID
-			fmt.Printf("[SearchConversations] Found other user: %s in conversation %s\n", member.UserID, conv.ID)
 		}
 	}
 
@@ -862,20 +857,15 @@ func (s *ConversationService) SearchConversations(userID uuid.UUID, keyword stri
 
 	// 3. 从 Agent 获取所有对方用户的数据（保持与会话列表一致）
 	userDataMap := s.batchGetUserDataFromAgent(otherUserIDs)
-	fmt.Printf("[SearchConversations] Got %d users from agent, keyword=%s\n", len(userDataMap), keyword)
 
 	// 4. 在内存中过滤匹配关键词的用户（不区分大小写）
 	keywordLower := strings.ToLower(keyword)
 	matchedUserIDs := make([]string, 0)
 	for uid, userData := range userDataMap {
-		fmt.Printf("[SearchConversations] Checking user %s: name=%s\n", uid, userData.Name)
 		if strings.Contains(strings.ToLower(userData.Name), keywordLower) {
-			fmt.Printf("[SearchConversations] MATCHED: user %s\n", uid)
 			matchedUserIDs = append(matchedUserIDs, uid)
 		}
 	}
-
-	fmt.Printf("[SearchConversations] Found %d matched users\n", len(matchedUserIDs))
 
 	if len(matchedUserIDs) == 0 {
 		return []map[string]interface{}{}, nil
