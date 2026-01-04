@@ -65,7 +65,7 @@ type Hub struct {
 func NewHub(db *gorm.DB, rdb *redis.Client, sysSvc *service.SystemSettingsService) *Hub {
 	return &Hub{
 		Clients:               make(map[uuid.UUID]map[uuid.UUID]*Client),
-		MaxConnectionsPerUser: 8, // 默认每个用户最多 8 个设备
+		MaxConnectionsPerUser: 18, // 默认每个用户最多 18 个设备
 		rdb:                   rdb,
 		msgSvc:                service.NewMessageService(db, rdb, sysSvc),
 		notifSvc:              service.NewNotificationService(db),
@@ -77,7 +77,7 @@ func NewHub(db *gorm.DB, rdb *redis.Client, sysSvc *service.SystemSettingsServic
 func NewHubWithConfig(db *gorm.DB, rdb *redis.Client, sysSvc *service.SystemSettingsService, maxVideoSizeMB int) *Hub {
 	return &Hub{
 		Clients:               make(map[uuid.UUID]map[uuid.UUID]*Client),
-		MaxConnectionsPerUser: 8, // 默认每个用户最多 8 个设备
+		MaxConnectionsPerUser: 18, // 默认每个用户最多 18 个设备
 		rdb:                   rdb,
 		msgSvc:                service.NewMessageServiceWithConfig(db, rdb, sysSvc, maxVideoSizeMB),
 		notifSvc:              service.NewNotificationService(db),
