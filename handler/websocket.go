@@ -59,6 +59,22 @@ type Hub struct {
 
 	// 系统配置服务
 	sysSvc *service.SystemSettingsService
+
+	// Pod ID（用于跨 Pod 广播去重）
+	podID string
+
+	// 停止 Pub/Sub 订阅
+	stopPubSub chan struct{}
+}
+
+// Redis Pub/Sub channel 名称
+const redisBroadcastChannel = "ws:broadcast"
+
+// BroadcastMessage 跨 Pod 广播消息格式
+type BroadcastMessage struct {
+	UserID  string `json:"user_id"`
+	PodID   string `json:"pod_id"` // 发送方 Pod ID，用于去重
+	Payload []byte `json:"payload"`
 }
 
 // NewHub 创建 Hub
@@ -70,6 +86,8 @@ func NewHub(db *gorm.DB, rdb *redis.Client, sysSvc *service.SystemSettingsServic
 		msgSvc:                service.NewMessageService(db, rdb, sysSvc),
 		notifSvc:              service.NewNotificationService(db),
 		sysSvc:                sysSvc,
+		podID:                 uuid.New().String(), // 每个 Pod 实例唯一 ID
+		stopPubSub:            make(chan struct{}),
 	}
 }
 
@@ -82,6 +100,8 @@ func NewHubWithConfig(db *gorm.DB, rdb *redis.Client, sysSvc *service.SystemSett
 		msgSvc:                service.NewMessageServiceWithConfig(db, rdb, sysSvc, maxVideoSizeMB),
 		notifSvc:              service.NewNotificationService(db),
 		sysSvc:                sysSvc,
+		podID:                 uuid.New().String(), // 每个 Pod 实例唯一 ID
+		stopPubSub:            make(chan struct{}),
 	}
 }
 
@@ -221,6 +241,83 @@ func (h *Hub) SendToUser(userID uuid.UUID, message []byte) bool {
 	return sentToAny
 }
 
+// BroadcastToUser 广播消息给用户（支持跨 Pod）
+// 先尝试本地发送，同时 publish 到 Redis 让其他 Pod 也能收到
+func (h *Hub) BroadcastToUser(userID uuid.UUID, message []byte) {
+	// 1. 先尝试本地发送
+	h.SendToUser(userID, message)
+
+	// 2. 发布到 Redis，让其他 Pod 也能推送
+	broadcastMsg := BroadcastMessage{
+		UserID:  userID.String(),
+		PodID:   h.podID,
+		Payload: message,
+	}
+	msgBytes, err := json.Marshal(broadcastMsg)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal broadcast message: %v", err)
+		return
+	}
+
+	ctx := context.Background()
+	if err := h.rdb.Publish(ctx, redisBroadcastChannel, msgBytes).Err(); err != nil {
+		log.Printf("[ERROR] Failed to publish to Redis: %v", err)
+	}
+}
+
+// StartPubSub 启动 Redis Pub/Sub 订阅（跨 Pod 消息广播）
+func (h *Hub) StartPubSub() {
+	go func() {
+		ctx := context.Background()
+		pubsub := h.rdb.Subscribe(ctx, redisBroadcastChannel)
+		defer pubsub.Close()
+
+		log.Printf("[INFO] Pod %s started Redis Pub/Sub subscription", h.podID[:8])
+
+		ch := pubsub.Channel()
+		for {
+			select {
+			case <-h.stopPubSub:
+				log.Printf("[INFO] Pod %s stopping Redis Pub/Sub subscription", h.podID[:8])
+				return
+			case msg := <-ch:
+				if msg == nil {
+					continue
+				}
+				h.handleBroadcastMessage([]byte(msg.Payload))
+			}
+		}
+	}()
+}
+
+// StopPubSub 停止 Redis Pub/Sub 订阅
+func (h *Hub) StopPubSub() {
+	close(h.stopPubSub)
+}
+
+// handleBroadcastMessage 处理来自 Redis 的广播消息
+func (h *Hub) handleBroadcastMessage(data []byte) {
+	var msg BroadcastMessage
+	if err := json.Unmarshal(data, &msg); err != nil {
+		log.Printf("[ERROR] Failed to unmarshal broadcast message: %v", err)
+		return
+	}
+
+	// 忽略自己发的消息（避免重复推送）
+	if msg.PodID == h.podID {
+		return
+	}
+
+	// 推送给本地用户
+	userID, err := uuid.Parse(msg.UserID)
+	if err != nil {
+		log.Printf("[ERROR] Invalid user ID in broadcast message: %v", err)
+		return
+	}
+
+	h.SendToUser(userID, msg.Payload)
+}
+
 // GetMessageService 获取消息服务（用于依赖注入）
 func (h *Hub) GetMessageService() *service.MessageService {
 	return h.msgSvc
@@ -253,7 +350,8 @@ func (h *Hub) SendNotification(userID uuid.UUID, notification interface{}) bool 
 		log.Printf("[ERROR] Failed to marshal notification: %v", err)
 		return false
 	}
-	return h.SendToUser(userID, responseData)
+	h.BroadcastToUser(userID, responseData)
+	return true
 }
 
 // SendUnreadCountUpdate 推送未读数量更新
@@ -270,7 +368,8 @@ func (h *Hub) SendUnreadCountUpdate(userID uuid.UUID, conversationID uuid.UUID, 
 		log.Printf("[ERROR] Failed to marshal unread count update: %v", err)
 		return false
 	}
-	return h.SendToUser(userID, responseData)
+	h.BroadcastToUser(userID, responseData)
+	return true
 }
 
 // SendOnlineStatusUpdate 推送在线状态变化
@@ -287,7 +386,8 @@ func (h *Hub) SendOnlineStatusUpdate(userID uuid.UUID, targetUserID uuid.UUID, i
 		log.Printf("[ERROR] Failed to marshal online status update: %v", err)
 		return false
 	}
-	return h.SendToUser(userID, responseData)
+	h.BroadcastToUser(userID, responseData)
+	return true
 }
 
 // SendConversationUpdate 推送会话更新(包含最新消息时间等)
@@ -307,8 +407,8 @@ func (h *Hub) SendConversationUpdate(userID uuid.UUID, conversationID uuid.UUID,
 		return false
 	}
 
-	return h.SendToUser(userID, responseData)
-	// 注意：用户离线时 SendToUser 返回 false 是正常情况，不记录日志
+	h.BroadcastToUser(userID, responseData)
+	return true
 }
 
 // SendNotificationUpdate 推送通知更新(未读数量+最新通知时间)
@@ -325,7 +425,8 @@ func (h *Hub) SendNotificationUpdate(userID uuid.UUID, unreadCount int, latestNo
 		log.Printf("[ERROR] Failed to marshal notification update: %v", err)
 		return false
 	}
-	return h.SendToUser(userID, responseData)
+	h.BroadcastToUser(userID, responseData)
+	return true
 }
 
 // notifyOnlineStatusChange 通知相关用户在线状态变化
@@ -635,7 +736,7 @@ func (c *Client) handleSendMessage(data json.RawMessage) {
 			},
 		}
 		responseData, _ := json.Marshal(response)
-		c.Hub.SendToUser(memberID, responseData)
+		c.Hub.BroadcastToUser(memberID, responseData)
 
 		// 注意：会话更新推送已经在 message_service.SendMessage() 中完成
 		// 不需要在这里重复推送，避免竞态条件和重复查询数据库
@@ -669,7 +770,7 @@ func (c *Client) handleTyping(data json.RawMessage) {
 	members, _ := c.Hub.msgSvc.GetConversationMembers(req.ConversationID)
 	for _, memberID := range members {
 		if memberID != c.UserID {
-			c.Hub.SendToUser(memberID, responseData)
+			c.Hub.BroadcastToUser(memberID, responseData)
 		}
 	}
 }
@@ -706,7 +807,7 @@ func (c *Client) handleMarkAsRead(data json.RawMessage) {
 		members, _ := c.Hub.msgSvc.GetConversationMembers(req.ConversationID)
 		for _, memberID := range members {
 			if memberID != c.UserID {
-				c.Hub.SendToUser(memberID, responseData)
+				c.Hub.BroadcastToUser(memberID, responseData)
 			}
 		}
 	}
@@ -751,7 +852,7 @@ func (c *Client) handleRecallMessage(data json.RawMessage) {
 	members, err := c.Hub.msgSvc.GetConversationMembers(message.ConversationID)
 	if err == nil {
 		for _, memberID := range members {
-			c.Hub.SendToUser(memberID, responseData)
+			c.Hub.BroadcastToUser(memberID, responseData)
 		}
 	}
 }

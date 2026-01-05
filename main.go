@@ -50,6 +50,9 @@ func main() {
 	hub.GetMessageService().SetUnreadNotifier(hub)
 	hub.GetMessageService().SetConversationNotifier(hub)
 
+	// 启动 Redis Pub/Sub 订阅（跨 Pod 消息广播）
+	hub.StartPubSub()
+
 	// 创建服务
 	convSvc := service.NewConversationServiceWithRedis(utils.GetDB(), utils.GetRedis())
 	relSvc := service.NewRelationshipService(utils.GetDB())
