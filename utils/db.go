@@ -72,7 +72,7 @@ func InitDB(databaseURL string) error {
 	sqlDB.SetMaxOpenConns(200)
 	sqlDB.SetMaxIdleConns(50)
 
-	log.Println("✅ Database connected")
+	log.Println("Database connected")
 	return nil
 }
 

@@ -1,4 +1,12 @@
-# dinq_message - 企业级即时通讯系统
+# DINQ System - dinq-message
+
+> 本项目是 **DINQ 微服务系统**的 **Inbox（收件箱）** 模块，负责即时通讯与消息通知功能。
+>
+> [English Version](./README_EN.md)
+
+---
+
+## dinq-message - 企业级即时通讯系统
 
 一个基于 Go + WebSocket + PostgreSQL + Redis 构建的高性能、可扩展的即时通讯系统，支持私聊、群聊、离线消息、消息撤回、拉黑等完整功能。
 
@@ -11,7 +19,6 @@
 - [项目结构](#项目结构)
 - [快速开始](#快速开始)
 - [性能指标](#性能指标)
-- [API 文档](#api-文档)
 
 ---
 
@@ -642,47 +649,6 @@ go test -v -run TestPerformance_HighThroughput ./test
 
 ---
 
-## API 文档
-
-详细的 API 文档请参考 [API.md](./API.md)
-
-### 核心接口概览
-
-#### WebSocket
-- `GET /ws?token=<ws_token>` - 建立 WebSocket 连接
-
-#### 会话管理
-- `GET /api/conversations` - 获取会话列表
-- `POST /api/conversations/group` - 创建群聊
-- `GET /api/conversations/:id/messages` - 获取消息历史
-
-#### 群聊管理
-- `POST /api/conversations/:id/members` - 添加成员
-- `POST /api/conversations/:id/members/remove` - 移除成员
-- `POST /api/conversations/:id/leave` - 离开群聊
-- `POST /api/conversations/:id/members/:user_id/role` - 更新成员角色
-
-#### 消息管理
-- `POST /api/messages/:id/recall` - 撤回消息
-
-#### 通知管理
-- `GET /api/notifications` - 获取通知列表
-- `POST /api/notifications/:id/read` - 标记已读
-- `POST /api/notifications/read-all` - 全部已读
-- `POST /api/notifications/:id/delete` - 删除通知
-
-#### 关系管理
-- `POST /api/relationships/block` - 拉黑用户
-- `POST /api/relationships/unblock` - 取消拉黑
-- `GET /api/relationships/blocked` - 获取拉黑列表
-
-#### 管理员API
-- `GET /api/admin/settings` - 获取系统设置
-- `POST /api/admin/settings/:key` - 更新系统设置
-- `GET /api/admin/notification-templates` - 通知模板管理
-
----
-
 ## 测试
 
 ### 运行所有测试
@@ -747,7 +713,7 @@ MIT License
 
 ## 贡献者
 
-- Allen - 架构设计与核心开发
+- elonfeng - 架构设计与核心开发
 
 ---
 

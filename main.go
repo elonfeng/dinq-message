@@ -50,6 +50,9 @@ func main() {
 	hub.GetMessageService().SetUnreadNotifier(hub)
 	hub.GetMessageService().SetConversationNotifier(hub)
 
+	// 启动 Redis Pub/Sub 订阅（跨 Pod 消息广播）
+	hub.StartPubSub()
+
 	// 创建服务
 	convSvc := service.NewConversationServiceWithRedis(utils.GetDB(), utils.GetRedis())
 	relSvc := service.NewRelationshipService(utils.GetDB())
@@ -70,9 +73,7 @@ func main() {
 	msgHandler := handler.NewMessageHandler(msgSvc, hub)
 
 	// 初始化默认通知模板
-	if err := notifTemplateSvc.InitDefaultTemplates(); err != nil {
-		log.Printf("Warning: Failed to init default notification templates: %v", err)
-	}
+	_ = notifTemplateSvc.InitDefaultTemplates()
 
 	// 创建 Gin 路由
 	r := gin.Default()
@@ -153,7 +154,7 @@ func main() {
 	}
 
 	// 启动服务
-	log.Printf("🚀 dinq_message service starting on port %s", cfg.Port)
+	log.Printf("dinq_message service starting on port %s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

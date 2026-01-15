@@ -78,7 +78,7 @@ func (h *MessageHandler) RecallMessage(c *gin.Context) {
 	members, err := h.msgSvc.GetConversationMembers(message.ConversationID)
 	if err == nil {
 		for _, memberID := range members {
-			h.hub.SendToUser(memberID, responseData)
+			h.hub.BroadcastToUser(memberID, responseData)
 		}
 	}
 

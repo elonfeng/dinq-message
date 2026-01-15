@@ -23,9 +23,8 @@ RUN adduser -D -s /bin/sh appuser
 
 WORKDIR /app
 
-# Copy binary and .env from builder
+# Copy binary from builder
 COPY --from=builder /app/dinq_message .
-COPY --from=builder /app/.env .
 
 # Change ownership
 RUN chown -R appuser:appuser /app
