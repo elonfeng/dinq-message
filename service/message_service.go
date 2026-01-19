@@ -261,8 +261,9 @@ func (s *MessageService) SendMessage(senderID uuid.UUID, req *SendMessageRequest
 	var lastMessageText *string
 	if message.MessageType == "text" && message.Content != nil {
 		text := *message.Content
-		if len(text) > 50 {
-			text = text[:50] + "..."
+		runes := []rune(text)
+		if len(runes) > 50 {
+			text = string(runes[:50]) + "..."
 		}
 		lastMessageText = &text
 	} else if message.MessageType == "image" {
