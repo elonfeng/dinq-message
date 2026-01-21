@@ -383,9 +383,10 @@ func (s *ConversationService) getMessagesByIDs(messageIDs []uuid.UUID) map[uuid.
 		var text string
 		if msg.MessageType == "text" && msg.Content != nil {
 			text = *msg.Content
-			// 限制预览长度
-			if len(text) > 50 {
-				text = text[:50] + "..."
+			// 限制预览长度（按字符截断，避免中文乱码）
+			runes := []rune(text)
+			if len(runes) > 50 {
+				text = string(runes[:50]) + "..."
 			}
 		} else if msg.MessageType == "image" {
 			text = "[图片]"
